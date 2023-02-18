@@ -1,0 +1,8 @@
+{
+    "Diffuse": ["diffuse", "color", "basecolor"],
+    "Metalness": ["metal", "metalness"],
+    "Roughness": ["rough", "roughness"],
+    "Normal": ["normal"],
+    "Displacement": ["disp", "displacement"],
+    "AO": ["ao", "ambientocclusion", "ambient_occlusion"]
+  }
