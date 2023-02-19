@@ -1,5 +1,12 @@
 import pymel.core as pm
-import tex_detector as td
+import tex_detector
+
+
+# Test tex_detector module
+file_name = "F14D_low_Body_v03_Metalness.1001.png"
+detector = tex_detector.TextureTypeDetector()
+texture_type = detector.detect_tex_type(file_name)
+print "Texture type:", texture_type
 
 
 # Open explorer
@@ -352,40 +359,20 @@ def materialSetup(ws):
         pm.warning("Please select some checkbox.")
 
 
+# 使用するマップのリストを作成
+maplist = ["AO", "DIFFUSE", "DISPLACEMENT", "METALNESS", "NORMAL", "OPACITY", "ROUGHNESS", "TRANSMISSION"]
+
 # ChangeUI
-def changeDiffTab(ws):
-    if pm.checkBox("cbDif", q=True, v=True):
-        pm.frameLayout("fl_diff", q=True, edit=True, cl=False, en=True)
-    else:
-        pm.frameLayout("fl_diff", q=True, edit=True, cl=True, en=False)
-
-
-def changeMetTab(ws):
-    if pm.checkBox("cbMet", q=True, v=True):
-        pm.frameLayout("fl_met", q=True, edit=True, cl=False, en=True)
-    else:
-        pm.frameLayout("fl_met", q=True, edit=True, cl=True, en=False)
-
-
-def changeRouTab(ws):
-    if pm.checkBox("cbRou", q=True, v=True):
-        pm.frameLayout("fl_rou", q=True, edit=True, cl=False, en=True)
-    else:
-        pm.frameLayout("fl_rou", q=True, edit=True, cl=True, en=False)
-
-
-def changeNorTab(ws):
-    if pm.checkBox("cbNor", q=True, v=True):
-        pm.frameLayout("fl_nor", q=True, edit=True, cl=False, en=True)
-    else:
-        pm.frameLayout("fl_nor", q=True, edit=True, cl=True, en=False)
-
-
-def changeDisTab(ws):
-    if pm.checkBox("cbDis", q=True, v=True):
-        pm.frameLayout("fl_dis", q=True, edit=True, cl=False, en=True)
-    else:
-        pm.frameLayout("fl_dis", q=True, edit=True, cl=True, en=False)
+# オンになっているチェックボックスのリストを作成
+def change_tab(ws):
+    global map_enabled
+    map_enabled = []
+    for (cb, fl) in zip(cb_maps, fl_maps):
+        if pm.checkBox(cb, q=True, v=True):
+            pm.frameLayout(fl, q=True, edit=True, cl=False, en=True)
+            map_enabled.append(cb)
+        else:
+            pm.frameLayout(fl, q=True, edit=True, cl=True, en=False)
 
 
 def createAll(ws):
@@ -402,143 +389,69 @@ def createAll(ws):
 def openUi():
     if pm.window("mainWin", ex=True):
         pm.deleteUI("mainWin", wnd=True)
-    with pm.window("mainWin", t="ezCreateMaterial") as wn:
-        global txDiff, txMetal, txRough, txNormal, txDisplace, frame_diff, frame_met, frame_rou, frame_nor, frame_dis
+    with pm.window("mainWin", t="ezMaterialBuilder") as wn:
+        global txDiff, txMetal, txRough, txNormal, txDisplace, frame_diff, frame_met, frame_rou, frame_nor, frame_dis, cb_maps, fl_maps
         txDiff = ""
         txMetal = ""
         txRough = ""
         txNormal = ""
         txDisplace = ""
-        with pm.columnLayout():
+        cb_maps = []
+        fl_maps = []
+        with pm.columnLayout(w=610):
             ws = {}
             with pm.horizontalLayout(ratios=[1, 4], spacing=10):
                 # Mesh map selection
                 with pm.columnLayout():
-                    with pm.frameLayout(l="Mesh maps", bgs=True, w=110):
-                        with pm.verticalLayout(ratios=[1, 1, 1, 1, 1], spacing=10):
-                            pm.checkBox("cbDif", l="Diffuse", v=True,
-                                        cc=pm.Callback(changeDiffTab, ws))
-                            pm.checkBox("cbMet", l="Metalness", v=True,
-                                        cc=pm.Callback(changeMetTab, ws))
-                            pm.checkBox("cbRou", l="Roughness", v=True,
-                                        cc=pm.Callback(changeRouTab, ws))
-                            pm.checkBox("cbNor", l="Normal", v=True,
-                                        cc=pm.Callback(changeNorTab, ws))
-                            pm.checkBox("cbDis", l="Displacement", v=True,
-                                        cc=pm.Callback(changeDisTab, ws))
-
-                    with pm.frameLayout(l="Advanced", cll=True, cl=True, bgs=True, w=110):
-                        with pm.verticalLayout(ratios=[1, 1, 1, 1, 1], spacing=10):
-                            pm.checkBox("cbAO", l="AO", v=True,
-                                        cc=pm.Callback(changeDiffTab, ws))
-                            pm.checkBox("cbOpc", l="Opacity", v=True,
-                                        cc=pm.Callback(changeDiffTab, ws))
-                            pm.checkBox("cbCav", l="Cavity", v=True,
-                                        cc=pm.Callback(changeDiffTab, ws))
+                    with pm.frameLayout(l="Maps", bgs=True, w=120):
+                        with pm.verticalLayout(spacing=10):
+                            for map in maplist:
+                                cb_map = "checkbox_" + map.lower()
+                                cb_maps.append(cb_map)
+                                pm.checkBox(cb_map, l=map, v=False, cc=pm.Callback(change_tab, ws))
 
                 with pm.columnLayout():
-                    # Common Settings
-                    with pm.frameLayout(l="Common Settings", cll=True, bgs=True, w=440):
-                        # with pm.rowColumnLayout(nc=2, cw=[(1,90),(2,300)]):
-                        with pm.verticalLayout(spacing=5):
-                            with pm.horizontalLayout(ratios=[1, 4], spacing=10):
-                                pm.text(l="Material Name", al="left", rs=False)
-                                pm.textField("tf_matname", tx="", h=20)
-                            with pm.horizontalLayout(ratios=[1, 4], spacing=10):
-                                pm.checkBox("cbUdim", l="UDIM")
-                                pm.checkBox(l="Ignore CS File Rules")
+                    with pm.scrollLayout(w=460, height=270, vst=True):
+                        # Common Settings
+                        with pm.frameLayout(l="Common Settings", bgs=True, w=440):
+                            # with pm.rowColumnLayout(nc=2, cw=[(1,90),(2,300)]):
+                            with pm.verticalLayout(spacing=5):
+                                with pm.horizontalLayout(ratios=[1, 4], spacing=5):
+                                    pm.text(l="Material Name", al="right", rs=False)
+                                    pm.textField("tf_matname", tx="", h=20)
+                                with pm.horizontalLayout(ratios=[1, 1, 2, 1], spacing=5):
+                                    pm.text(l="")
+                                    pm.checkBox("cbUdim", l="UDIM")
+                                    pm.checkBox(l="Ignore CS File Rules")
+                                    pm.button(l="Auto append")
 
-                    # Diffuse Settings
-                    with pm.frameLayout("fl_diff", l="Diffuse", cll=True, cl=True, bgs=True, w=440) as frame_diff:
-                        with pm.verticalLayout(ratios=[1, 3], spacing=5):
-                            with pm.horizontalLayout(ratios=[12, 1], spacing=10):
-                                # pm.checkBox("cbDif", l="Enable", v=True, cc=pm.Callback(changeUI, ws))
-                                pm.textField("tfDiffuse", text="not selected",
-                                             cc=pm.Callback(setDiffMapPath, ws), h=20, w=230)
-                                pm.symbolButton("browser1", image="navButtonBrowse.png",
-                                                command=pm.Callback(selectDiff, ws))
-                            with pm.frameLayout(l="File Attributes", en=True):
-                                # pm.checkBox("cbUdim1", l="UDIM", v=False)
-                                pm.optionMenu(
-                                    "opm1", l="Color Space", en=True, acc=True, cc=getAttrsDiff)
-                                pm.menuItem("miRgb1", l="sRGB")
-                                pm.menuItem("miRaw1", l="Raw")
-                                pm.checkBox("cbALdiff", l="Alpha is Luminance",
-                                            v=False, en=True)
+                        for map in maplist:
+                            fl_map = "framelayout_" + map.lower()
+                            fl_maps.append(fl_map)
+                            pm.frameLayout(fl_map, l=map, cll=True, cl=True, en=False, bgs=True, w=440)
+                            with pm.verticalLayout(ratios=[1, 1, 1, 1], spacing=4):
+                                with pm.horizontalLayout(ratios=[2, 7, 1], spacing=4):
+                                    pm.text(l="Image Name", al="right", rs=False)
+                                    pm.textField("tfDiffuse", text="not selected",
+                                                cc=pm.Callback(setDiffMapPath, ws), h=20, w=230)
+                                    pm.symbolButton("browser1", image="navButtonBrowse.png",
+                                                    command=pm.Callback(selectDiff, ws))
 
-                    # Metalness Settings
-                    with pm.frameLayout("fl_met", l="Metalness", cll=True, cl=True, bgs=True, w=440) as frame_met:
-                        with pm.verticalLayout(ratios=[1, 3], spacing=5):
-                            with pm.horizontalLayout(ratios=[12, 1], spacing=10):
-                                # pm.checkBox("cbMet", l="Enable", v=True)
-                                pm.textField("tfMetalness", text="not selected",
-                                             cc=pm.Callback(setMetalMapPath, ws), h=20, w=230)
-                                pm.symbolButton("browser2", image="navButtonBrowse.png",
-                                                command=pm.Callback(selectMetal, ws))
-                            with pm.frameLayout(l="File Attributes", en=True):
-                                # pm.checkBox("cbUdim2", l="UDIM", v=False)
-                                pm.optionMenu(
-                                    "opm2", l="Color Space", en=True, acc=True, cc=getAttrsMet)
-                                pm.menuItem("miRgb2", l="sRGB")
-                                pm.menuItem("miRaw2", l="Raw")
-                                pm.checkBox("cbALmet", l="Alpha is Luminance",
-                                            v=False, en=True)
+                                pm.text(" File Attributes", al="left", font='boldLabelFont')
 
-                    # Roughness Settings
-                    with pm.frameLayout("fl_rou", l="Roughness", cll=True, cl=True, bgs=True, w=440) as frame_rou:
-                        with pm.verticalLayout(ratios=[1, 3], spacing=5):
-                            with pm.horizontalLayout(ratios=[12, 1], spacing=10):
-                                # pm.checkBox("cbRou", l="Enable", v=True)
-                                pm.textField("tfRoughness", text="not selected",
-                                             cc=pm.Callback(setRoughMapPath, ws), h=20, w=230)
-                                pm.symbolButton("browser3", image="navButtonBrowse.png",
-                                                command=pm.Callback(selectRough, ws))
-                            with pm.frameLayout(l="File Attributes", en=True):
-                                # pm.checkBox("cbUdim3", l="UDIM", v=False)
-                                pm.optionMenu(
-                                    "opm3", l="Color Space", en=True, acc=True, cc=getAttrsRou)
-                                pm.menuItem("miRgb3", l="sRGB")
-                                pm.menuItem("miRaw3", l="Raw")
-                                pm.checkBox("cbALrou", l="Alpha is Luminance",
-                                            v=False, en=True)
+                                with pm.horizontalLayout(ratios=[2, 7, 1], spacing=4):
+                                    pm.text(l="Color Space", al="right")
+                                    pm.optionMenu("opm1", en=True, acc=True, cc=getAttrsDiff)
+                                    pm.menuItem("miRgb1", l="sRGB")
+                                    pm.menuItem("miRaw1", l="Raw")
 
-                    # Normal Settings
-                    with pm.frameLayout("fl_nor", l="Normal", cll=True, cl=True, bgs=True, w=440) as frame_nor:
-                        with pm.verticalLayout(ratios=[1, 3], spacing=5):
-                            with pm.horizontalLayout(ratios=[12, 1], spacing=10):
-                                # pm.checkBox("cbNor", l="Enable", v=True)
-                                pm.textField("tfNormal", text="not selected",
-                                             cc=pm.Callback(setNormalMapPath, ws), h=20, w=230)
-                                pm.symbolButton("browser4", image="navButtonBrowse.png",
-                                                command=pm.Callback(selectNormal, ws))
-                            with pm.frameLayout(l="File Attributes", en=True):
-                                # pm.checkBox("cbUdim4", l="UDIM", v=False)
-                                pm.optionMenu(
-                                    "opm4", l="Color Space", en=True, acc=True, cc=getAttrsNor)
-                                pm.menuItem("miRgb4", l="sRGB")
-                                pm.menuItem("miRaw4", l="Raw")
-                                pm.checkBox("cbALnor", l="Alpha is Luminance",
-                                            v=False, en=True)
+                                with pm.horizontalLayout(ratios=[1, 4], spacing=4):
+                                    pm.text(l="")
+                                    pm.checkBox("cbALdiff", l="Alpha is Luminance", v=False, en=True)
 
-                    # Displacement Settings
-                    with pm.frameLayout("fl_dis", l="Displacement", cll=True, cl=True, bgs=True, w=440) as frame_dis:
-                        with pm.verticalLayout(ratios=[1, 3], spacing=5):
-                            with pm.horizontalLayout(ratios=[12, 1], spacing=10):
-                                pm.textField("tfDisplace", text="not selected",
-                                             cc=pm.Callback(setDisplaceMapPath, ws), h=20, w=230)
-                                pm.symbolButton("browser4", image="navButtonBrowse.png",
-                                                command=pm.Callback(selectDisplace, ws))
-                            with pm.frameLayout(l="File Attributes", en=True):
-                                pm.optionMenu(
-                                    "opm4", l="Color Space", en=True, acc=True, cc=getAttrsDis)
-                                pm.menuItem("miRgb4", l="sRGB")
-                                pm.menuItem("miRaw4", l="Raw")
-                                pm.checkBox("cbALdis", l="Alpha is Luminance",
-                                            v=False, en=True)
-
-                    with pm.verticalLayout():
-                        pm.button(label="Create Material", w=440,
-                                  command=pm.Callback(createAll, ws))
+                    with pm.horizontalLayout(ratios=[1, 1], spacing=4):
+                        pm.button(label="Build Material", w=220, command=pm.Callback(createAll, ws))
+                        pm.button(label="Close", w=220, command=pm.Callback(createAll, ws))
 
 
 def run():

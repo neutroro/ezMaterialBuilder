@@ -17,6 +17,7 @@ class TextureTypeDetector:
     def load_settings(self):
         with open(CONFIG_PATH, 'r') as f:
             self.settings = json.load(f)
+            print("Loaded")
 
     def detect_tex_type(self, file_name):
         file_name = os.path.splitext(os.path.basename(file_name))[0]
