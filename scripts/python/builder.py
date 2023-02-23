@@ -1,3 +1,4 @@
+from collections import defaultdict
 import pymel.core as pm
 import tex_detector
 
@@ -8,34 +9,41 @@ detector = tex_detector.TextureTypeDetector()
 texture_type = detector.detect_tex_type(file_name)
 print "Texture type:", texture_type
 
+map_dict = defaultdict(list)
+map_path_dict = {}
 
 # Open explorer
+def open_browser(ws, tf_name):
+    try:
+        imgFilter = "ImageFiles (*.*)"
+        map_path = pm.fileDialog2(ff=imgFilter, ds=1, fm=1)[0]
+        pm.textField(tf_name, edit=1, text=map_path)
+        #print "Map path: ", map_path
+        #return map_path
+    except TypeError:
+        pass
+
+
+# Get file path
+def apply_map_path(ws, tf_name, map_name):
+    map_path = pm.textField(tf_name, q=True, text=True)
+    map_path_dict[map_name] = map_path
+    print map_path_dict
+    return map_path_dict
+
+
+def select_map(ws, tf_name, map_name):
+    open_browser(ws, tf_name)
+    map_path_dict = apply_map_path(ws, tf_name, map_name)
+    return map_path_dict
+
+
 def browserDiff(ws):
     try:
         imgFilter = "ImageFiles (*.*)"
         mapDiff = pm.fileDialog2(ff=imgFilter, ds=1, fm=1)
         textDiff = mapDiff[0]
         pm.textField("tfDiffuse", edit=1, text=textDiff)
-    except TypeError:
-        pass
-
-
-def browserMetal(ws):
-    try:
-        imgFilter = "ImageFiles (*.*)"
-        mapMetal = pm.fileDialog2(ff=imgFilter, ds=1, fm=1)
-        textMetal = mapMetal[0]
-        pm.textField("tfMetalness", edit=1, text=textMetal)
-    except TypeError:
-        pass
-
-
-def browserRough(ws):
-    try:
-        imgFilter = "ImageFiles (*.*)"
-        mapRough = pm.fileDialog2(ff=imgFilter, ds=1, fm=1)
-        textRough = mapRough[0]
-        pm.textField("tfRoughness", edit=1, text=textRough)
     except TypeError:
         pass
 
@@ -68,20 +76,6 @@ def setDiffMapPath(ws):
     txDiff = text_in_d
 
 
-def setMetalMapPath(ws):
-    global txMetal
-    txMetal = ""
-    text_in_m = pm.textField('tfMetalness', q=True, text=True)
-    txMetal = text_in_m
-
-
-def setRoughMapPath(ws):
-    global txRough
-    txRough = ""
-    text_in_r = pm.textField('tfRoughness', q=True, text=True)
-    txRough = text_in_r
-
-
 def setNormalMapPath(ws):
     global txNormal
     txNormal = ""
@@ -101,78 +95,35 @@ def selectDiff(ws):
     setDiffMapPath(ws)
 
 
-def selectMetal(ws):
-    browserMetal(ws)
-    setMetalMapPath(ws)
-
-
-def selectRough(ws):
-    browserRough(ws)
-    setRoughMapPath(ws)
-
-
-def selectNormal(ws):
-    browserNormal(ws)
-    setNormalMapPath(ws)
-
-
-def selectDisplace(ws):
-    browserDisplace(ws)
-    setDisplaceMapPath(ws)
-
-
-# Import textures
-def importTextureFile(ws):
-    if pm.checkBox("cbDif", q=True, v=True) or pm.checkBox("cbMet", q=True, v=True) or pm.checkBox("cbRou", q=True, v=True) or pm.checkBox("cbNor", q=True, v=True) or pm.checkBox("cbDis", q=True, v=True):
+# Create file nodes
+def create_file_nodes(ws):
+    for m in map_enabled:
+        coord_name = "coord_" + m
         coord2d = pm.shadingNode(
-            "place2dTexture", asUtility=True, name="Coords")
-        if pm.checkBox("cbDif", q=True, v=True):
-            global file_diff
-            file_diff = pm.shadingNode("file", asTexture=True, name="Diffuse")
-            pm.defaultNavigation(ce=True, s=coord2d, d=file_diff)
-
-        if pm.checkBox("cbMet", q=True, v=True):
-            global file_metal
-            file_metal = pm.shadingNode(
-                "file", asTexture=True, name="Metalness")
-            pm.defaultNavigation(ce=True, s=coord2d, d=file_metal)
-
-        if pm.checkBox("cbRou", q=True, v=True):
-            global file_rough
-            file_rough = pm.shadingNode(
-                "file", asTexture=True, name="Roughness")
-            pm.defaultNavigation(ce=True, s=coord2d, d=file_rough)
-
-        if pm.checkBox("cbNor", q=True, v=True):
-            global file_normal
-            file_normal = pm.shadingNode("file", asTexture=True, name="Normal")
-            pm.defaultNavigation(ce=True, s=coord2d, d=file_normal)
-
-        if pm.checkBox("cbDis", q=True, v=True):
-            global file_displace
-            file_displace = pm.shadingNode(
-                "file", asTexture=True, name="Displacement")
-            pm.defaultNavigation(ce=True, s=coord2d, d=file_displace)
-
-        else:
-            pass
-    else:
-        pm.warning(
-            "Please select some checkbox.")
+            "place2dTexture", asUtility=True, name=coord_name)
+        file_node_name = "file_" + m
+        file_node = pm.shadingNode("file", asTexture=True, name=file_node_name)
+        pm.defaultNavigation(ce=True, s=coord2d, d=file_node)
 
 
 def getMatName(ws):
-    global matname
-    matname = pm.textField("tf_matname", q=True, text=True)
+    global mat_name
+    mat_name = pm.textField("tf_matname", q=True, text=True)
+    return mat_name
 
 
 def initAttrs():
-    global cs_diff, cs_met, cs_rou, cs_nor, cs_dis
-    cs_diff = "sRGB"
-    cs_met = "sRGB"
-    cs_rou = "sRGB"
-    cs_nor = "sRGB"
-    cs_dis = "sRGB"
+    for cs in maplist:
+        cs_type = "sRGB"
+    return cs
+
+
+def set_attrs(item_cs):
+    for om in om_maplist:
+        #if map_enabled
+        cs_type = item_cs
+        print cs_type
+        return cs_type
 
 
 def getAttrsDiff(item_d):
@@ -180,20 +131,6 @@ def getAttrsDiff(item_d):
     cs_diff = "sRGB"
     if pm.checkBox("cbDif", q=True, v=True):
         cs_diff = item_d
-
-
-def getAttrsMet(item_m):
-    global cs_met
-    cs_met = "sRGB"
-    if pm.checkBox("cbMet", q=True, v=True):
-        cs_met = item_m
-
-
-def getAttrsRou(item_r):
-    global cs_rou
-    cs_rou = "sRGB"
-    if pm.checkBox("cbRou", q=True, v=True):
-        cs_rou = item_r
 
 
 def getAttrsNor(item_n):
@@ -359,20 +296,21 @@ def materialSetup(ws):
         pm.warning("Please select some checkbox.")
 
 
-# 使用するマップのリストを作成
+# List of maps to use
 maplist = ["AO", "DIFFUSE", "DISPLACEMENT", "METALNESS", "NORMAL", "OPACITY", "ROUGHNESS", "TRANSMISSION"]
 
 # ChangeUI
-# オンになっているチェックボックスのリストを作成
+# List of checked checkboxes
 def change_tab(ws):
     global map_enabled
     map_enabled = []
-    for (cb, fl) in zip(cb_maps, fl_maps):
+    for (cb, fl, map) in zip(cb_maps, fl_maplist, maplist):
         if pm.checkBox(cb, q=True, v=True):
             pm.frameLayout(fl, q=True, edit=True, cl=False, en=True)
-            map_enabled.append(cb)
+            map_enabled.append(map)
         else:
             pm.frameLayout(fl, q=True, edit=True, cl=True, en=False)
+    print "EnableTab: ", map_enabled
 
 
 def createAll(ws):
@@ -381,23 +319,26 @@ def createAll(ws):
     if matname == "":
         pm.warning("Please enter material name")
     else:
-        importTextureFile(ws)
-        materialSetup(ws)
+        create_file_nodes(ws)
+        #materialSetup(ws)
 
 
 # ui setting
-def openUi():
+def open_ui():
     if pm.window("mainWin", ex=True):
         pm.deleteUI("mainWin", wnd=True)
     with pm.window("mainWin", t="ezMaterialBuilder") as wn:
-        global txDiff, txMetal, txRough, txNormal, txDisplace, frame_diff, frame_met, frame_rou, frame_nor, frame_dis, cb_maps, fl_maps
+        global txDiff, txMetal, txRough, txNormal, txDisplace, cb_maps, fl_maplist
         txDiff = ""
         txMetal = ""
         txRough = ""
         txNormal = ""
         txDisplace = ""
         cb_maps = []
-        fl_maps = []
+        fl_maplist = []
+        tf_maplist = []
+        om_maplist = []
+
         with pm.columnLayout(w=610):
             ws = {}
             with pm.horizontalLayout(ratios=[1, 4], spacing=10):
@@ -410,11 +351,11 @@ def openUi():
                                 cb_maps.append(cb_map)
                                 pm.checkBox(cb_map, l=map, v=False, cc=pm.Callback(change_tab, ws))
 
+                # Material settings
                 with pm.columnLayout():
-                    with pm.scrollLayout(w=460, height=270, vst=True):
+                    with pm.scrollLayout(w=460, height=280, vst=True):
                         # Common Settings
                         with pm.frameLayout(l="Common Settings", bgs=True, w=440):
-                            # with pm.rowColumnLayout(nc=2, cw=[(1,90),(2,300)]):
                             with pm.verticalLayout(spacing=5):
                                 with pm.horizontalLayout(ratios=[1, 4], spacing=5):
                                     pm.text(l="Material Name", al="right", rs=False)
@@ -425,30 +366,37 @@ def openUi():
                                     pm.checkBox(l="Ignore CS File Rules")
                                     pm.button(l="Auto append")
 
+                        # Mesh map settings
                         for map in maplist:
                             fl_map = "framelayout_" + map.lower()
-                            fl_maps.append(fl_map)
+                            fl_maplist.append(fl_map)
+                            tf_map = "textfield_" + map.lower()
+                            tf_maplist.append(tf_map)
+                            om_map = "optionmenu_" + map.lower()
+                            om_maplist.append(om_map)
+
                             pm.frameLayout(fl_map, l=map, cll=True, cl=True, en=False, bgs=True, w=440)
                             with pm.verticalLayout(ratios=[1, 1, 1, 1], spacing=4):
                                 with pm.horizontalLayout(ratios=[2, 7, 1], spacing=4):
                                     pm.text(l="Image Name", al="right", rs=False)
-                                    pm.textField("tfDiffuse", text="not selected",
-                                                cc=pm.Callback(setDiffMapPath, ws), h=20, w=230)
+                                    pm.textField(tf_map, text="not selected",
+                                                cc=pm.Callback(apply_map_path, ws, tf_map, map), h=20, w=230)
                                     pm.symbolButton("browser1", image="navButtonBrowse.png",
-                                                    command=pm.Callback(selectDiff, ws))
+                                                    command=pm.Callback(select_map, ws, tf_map, map))
 
                                 pm.text(" File Attributes", al="left", font='boldLabelFont')
 
                                 with pm.horizontalLayout(ratios=[2, 7, 1], spacing=4):
                                     pm.text(l="Color Space", al="right")
-                                    pm.optionMenu("opm1", en=True, acc=True, cc=getAttrsDiff)
-                                    pm.menuItem("miRgb1", l="sRGB")
-                                    pm.menuItem("miRaw1", l="Raw")
+                                    pm.optionMenu(om_map, en=True, acc=True, cc=set_attrs)
+                                    pm.menuItem("mi_srgb", l="sRGB")
+                                    pm.menuItem("mi_raw", l="Raw")
 
                                 with pm.horizontalLayout(ratios=[1, 4], spacing=4):
                                     pm.text(l="")
                                     pm.checkBox("cbALdiff", l="Alpha is Luminance", v=False, en=True)
 
+                    # Buttons
                     with pm.horizontalLayout(ratios=[1, 1], spacing=4):
                         pm.button(label="Build Material", w=220, command=pm.Callback(createAll, ws))
                         pm.button(label="Close", w=220, command=pm.Callback(createAll, ws))
@@ -456,7 +404,7 @@ def openUi():
 
 def run():
     initAttrs()
-    openUi()
+    open_ui()
 
 
 run()
