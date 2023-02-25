@@ -11,12 +11,15 @@ TEX_FILE = "D:/Pictures/F14D_low_Body_v03_Diffuse.1001.png"
 
 
 class TextureTypeDetector:
+    """
     def __init__(self):
+        self.keywords = []
         self.load_settings()
 
     def load_settings(self):
         with open(CONFIG_PATH, 'r') as f:
-            self.settings = json.load(f)
+            config = json.load(f)
+            self.settings = config["keywords"]
             print("Loaded")
 
     def detect_tex_type(self, file_name):
@@ -29,7 +32,19 @@ class TextureTypeDetector:
                     return tex_type
 
         return None
+    """
 
+    def __init__(self, json_file):
+        with open(json_file, 'r') as f:
+            self.keywords = json.load(f)["keywords"]
+
+
+    def detect_texture(self, file_name):
+        for texture_type, keywords in self.keywords.items():
+            for keyword in keywords:
+                if keyword in filename.lower():
+                    return texture_type
+        return None
 
 # Test
 file_name = TEX_FILE

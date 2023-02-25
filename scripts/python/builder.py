@@ -1,16 +1,25 @@
-from collections import defaultdict
+# -*- coding: utf-8 -*-
+from __future__ import print_function
+import json
+import maya.cmds as cmds
 import pymel.core as pm
-import tex_detector
+import classifier
 
 
-# Test tex_detector module
-file_name = "F14D_low_Body_v03_Metalness.1001.png"
-detector = tex_detector.TextureTypeDetector()
-texture_type = detector.detect_tex_type(file_name)
-print "Texture type:", texture_type
+CONFIG_FILE = "D:/Scripts/Maya/ezMaterialBuilder/config.json"
+classifier = classifier.TextureClassifier(CONFIG_FILE)
+# classifier.run()
 
-map_dict = defaultdict(list)
+
+# List of maps to use
+MAP_LIST = ["AO", "BASECOLOR", "COAT", "DISPLACEMENT", "EMISSION", "METALNESS", "NORMAL", "OPACITY", "ROUGHNESS", "SPECULAR", "SSS", "TRANSMISSION"]
 map_path_dict = {}
+map_cs_dict = {}
+map_alpha_dict = {}
+
+with open(CONFIG_FILE, 'r') as f:
+    connect = json.load(f)["connection"]
+
 
 # Open explorer
 def open_browser(ws, tf_name):
@@ -18,309 +27,191 @@ def open_browser(ws, tf_name):
         imgFilter = "ImageFiles (*.*)"
         map_path = pm.fileDialog2(ff=imgFilter, ds=1, fm=1)[0]
         pm.textField(tf_name, edit=1, text=map_path)
-        #print "Map path: ", map_path
-        #return map_path
     except TypeError:
         pass
 
 
-# Get file path
-def apply_map_path(ws, tf_name, map_name):
-    map_path = pm.textField(tf_name, q=True, text=True)
-    map_path_dict[map_name] = map_path
-    print map_path_dict
+# Listup all map paths
+def apply_map_path(ws):
+    for tf, map in zip(tf_maplist, MAP_LIST):
+        map_path = pm.textField(tf, q=True, text=True)
+        if map_path == "not selected":
+            map_path_dict[map] = "None"
+        else:
+            map_path_dict[map] = map_path
+    print("Path: ", map_path_dict)
     return map_path_dict
 
 
-def select_map(ws, tf_name, map_name):
-    open_browser(ws, tf_name)
-    map_path_dict = apply_map_path(ws, tf_name, map_name)
-    return map_path_dict
+def apply_color_space(ws):
+    for om, map in zip(om_maplist, MAP_LIST):
+        color_space = pm.optionMenu(om, q=True, v=True)
+        map_cs_dict[map] = color_space
+    print("ColorSpace: ", map_cs_dict)
+    return map_cs_dict
 
 
-def browserDiff(ws):
-    try:
-        imgFilter = "ImageFiles (*.*)"
-        mapDiff = pm.fileDialog2(ff=imgFilter, ds=1, fm=1)
-        textDiff = mapDiff[0]
-        pm.textField("tfDiffuse", edit=1, text=textDiff)
-    except TypeError:
-        pass
+def apply_alpha_luminace(ws):
+    for al, map in zip(al_maplist, MAP_LIST):
+        a_is_luminance = pm.checkBox(al, q=True, v=True)
+        map_alpha_dict[map] = a_is_luminance
+    print("Alpha is Lum: ", map_alpha_dict)
+    return map_alpha_dict
 
 
-def browserNormal(ws):
-    try:
-        imgFilter = "ImageFiles (*.*)"
-        mapNormal = pm.fileDialog2(ff=imgFilter, ds=1, fm=1)
-        textNormal = mapNormal[0]
-        pm.textField("tfNormal", edit=1, text=textNormal)
-    except TypeError:
-        pass
+def apply_common_settings(ws):
+    if pm.checkBox("checkbox_udim", q=True, v=True):
+        udim = 3
+    else:
+        udim = 0
+    ignore_cs = pm.checkBox("checkbox_ignore_cs", q=True, v=True)
+    print("UDIM:", udim)
+    print("IGNORE_CS:", ignore_cs)
+    return udim, ignore_cs
 
 
-def browserDisplace(ws):
-    try:
-        imgFilter = "ImageFiles (*.*)"
-        mapDisplace = pm.fileDialog2(ff=imgFilter, ds=1, fm=1)
-        textDisplace = mapDisplace[0]
-        pm.textField("tfDisplace", edit=1, text=textDisplace)
-    except TypeError:
-        pass
+def get_all_attrs(ws):
+    apply_map_path(ws)
+    apply_color_space(ws)
+    apply_alpha_luminace(ws)
+    apply_common_settings(ws)
 
 
-# Get file path
-def setDiffMapPath(ws):
-    global txDiff
-    txDiff = ""
-    text_in_d = pm.textField('tfDiffuse', q=True, text=True)
-    txDiff = text_in_d
-
-
-def setNormalMapPath(ws):
-    global txNormal
-    txNormal = ""
-    text_in_n = pm.textField('tfNormal', q=True, text=True)
-    txNormal = text_in_n
-
-
-def setDisplaceMapPath(ws):
-    global txDisplace
-    txDisplace = ""
-    text_in_dis = pm.textField('tfDisplace', q=True, text=True)
-    txDisplace = text_in_dis
-
-
-def selectDiff(ws):
-    browserDiff(ws)
-    setDiffMapPath(ws)
-
-
-# Create file nodes
-def create_file_nodes(ws):
-    for m in map_enabled:
-        coord_name = "coord_" + m
-        coord2d = pm.shadingNode(
-            "place2dTexture", asUtility=True, name=coord_name)
-        file_node_name = "file_" + m
-        file_node = pm.shadingNode("file", asTexture=True, name=file_node_name)
-        pm.defaultNavigation(ce=True, s=coord2d, d=file_node)
-
-
-def getMatName(ws):
-    global mat_name
+def get_mat_name(ws):
     mat_name = pm.textField("tf_matname", q=True, text=True)
     return mat_name
 
 
-def initAttrs():
-    for cs in maplist:
-        cs_type = "sRGB"
-    return cs
-
-
-def set_attrs(item_cs):
-    for om in om_maplist:
-        #if map_enabled
-        cs_type = item_cs
-        print cs_type
-        return cs_type
-
-
-def getAttrsDiff(item_d):
-    global cs_diff
-    cs_diff = "sRGB"
-    if pm.checkBox("cbDif", q=True, v=True):
-        cs_diff = item_d
-
-
-def getAttrsNor(item_n):
-    global cs_nor
-    cs_nor = "sRGB"
-    if pm.checkBox("cbNor", q=True, v=True):
-        cs_nor = item_n
-
-
-def getAttrsDis(item_dis):
-    global cs_dis
-    cs_dis = "sRGB"
-    if pm.checkBox("cbDis", q=True, v=True):
-        cs_dis = item_dis
+# Create file nodes
+def create_file_nodes(ws):
+    file_nodelist = []
+    for map in map_enabled:
+        coord_name = "coord_" + map
+        coord2d = cmds.shadingNode("place2dTexture", asUtility=True, name=coord_name)
+        file_node_name = "file_" + map
+        file_node = cmds.shadingNode("file", asTexture=True, name=file_node_name)
+        cmds.defaultNavigation(ce=True, s=coord2d, d=file_node)
+        file_nodelist.append(file_node)
+    return file_nodelist
 
 
 # Setup aiStandardSurface
-def materialSetup(ws):
-    global cs_diff, cs_met, cs_rou, cs_nor, cs_dis
-    if pm.checkBox("cbDif", q=True, v=True) or pm.checkBox("cbMet", q=True, v=True) or pm.checkBox("cbRou", q=True, v=True) or pm.checkBox("cbNor", q=True, v=True) or pm.checkBox("cbDis", q=True, v=True):
-        ai_mat = pm.shadingNode("aiStandardSurface",
-                                asShader=True, name=matname)
+def material_setup(ws):
+    file_nodelist = create_file_nodes(ws)
+    matname = get_mat_name(ws)
+    path = apply_map_path(ws)
+    cs = apply_color_space(ws)
+    aisl = apply_alpha_luminace(ws)
+    udim, ignore_cs = apply_common_settings(ws)
 
-        # Diffuse
-        if pm.checkBox("cbDif", q=True, v=True):
-            try:
-                pm.defaultNavigation(
-                    ce=True, s=file_diff + ".outColor", d=ai_mat + ".baseColor")
-                pm.setAttr(file_diff + ".colorSpace", cs_diff, type="string")
-                pm.setAttr(file_diff + ".ignoreColorSpaceFileRules", 1)
-                pm.setAttr(file_diff + ".fileTextureName",
-                           txDiff, type="string")
+    if map_enabled:
+        ai_mat = cmds.shadingNode("aiStandardSurface", asShader=True, name=matname)
+        for map, file_node in zip(map_enabled, file_nodelist):
+            connect_from = connect[map][0]
+            connect_to = connect[map][1]
 
-                if pm.checkBox("cbALdiff", q=True, v=True):
-                    pm.setAttr(file_diff + ".alphaIsLuminance", 1)
-                elif pm.checkBox("cbALdiff", q=True, v=False):
-                    pm.setAttr(file_diff + ".alphaIsLuminance", 0)
+            # Set file nodes attributes
+            cmds.setAttr(file_node + ".ignoreColorSpaceFileRules", ignore_cs)
+            cmds.setAttr(file_node + ".uvTilingMode", udim)
+            cmds.setAttr(file_node + ".colorSpace", cs[map], type="string")
+            cmds.setAttr(file_node + ".alphaIsLuminance", aisl[map])
+            cmds.setAttr(file_node + ".fileTextureName", path[map], type="string")
 
-                if pm.checkBox("cbUdim", q=True, v=True):
-                    pm.setAttr(file_diff + ".uvTilingMode", 3)
-                elif pm.checkBox("cbUdim", q=True, v=False):
-                    pm.setAttr(file_diff + ".uvTilingMode", 0)
+            if map == "AO":
+                try:
+                    ai_mult = cmds.shadingNode("aiMultiply", asShader=True, name=matname + "_Mult")
+                    cmds.defaultNavigation(ce=True, s=file_node + connect_from, d=ai_mult + connect_to)
+                    cmds.defaultNavigation(ce=True, s=ai_mult + ".outColor", d=ai_mat + ".baseColor")
+                except NameError:
+                    cmds.warning("AO file is not selected.")
 
-            except NameError:
-                pm.warning(
-                    "DiffuseMap is not selected. Please select DiffuseMap")
+            elif map == "BASECOLOR":
+                if "AO" in map_enabled:
+                    try:
+                        cmds.defaultNavigation(ce=True, s=file_node + connect_from, d=ai_mult + ".input1")
+                    except NameError:
+                        cmds.warning("")
+                else:
+                    try:
+                        cmds.defaultNavigation(ce=True, s=file_node + connect_from, d=ai_mat + connect_to)
+                    except NameError:
+                        cmds.warning("")
 
-        # Metalness
-        if pm.checkBox("cbMet", q=True, v=True):
-            try:
-                pm.defaultNavigation(
-                    ce=True, s=file_metal + ".outAlpha", d=ai_mat + ".metalness")
-                pm.setAttr(file_metal + ".colorSpace", cs_met, type="string")
-                pm.setAttr(file_metal + ".ignoreColorSpaceFileRules", 1)
-                pm.setAttr(file_metal + ".fileTextureName",
-                           txMetal, type="string")
+            elif map == "DISPLACEMENT":
+                try:
+                    disp_shader = cmds.shadingNode("displacementShader", asShader=True, name=matname + "_DisplacementShader")
+                    disp_sg = cmds.sets(r=True, nss=True, em=True, name=matname + "_dsSG")
+                    cmds.defaultNavigation(ce=True, s=file_node + connect_from, d=disp_shader + connect_to)
+                    cmds.defaultNavigation(ce=True, s=disp_shader + ".displacement", d=disp_sg + ".displacementShader")
+                    cmds.defaultNavigation(ce=True, s=ai_mat + ".outColor", d=disp_sg + ".surfaceShader")
+                except NameError:
+                    cmds.warning("DISPLACEMENT file is not selected.")
 
-                if pm.checkBox("cbALmet", q=True, v=True):
-                    pm.setAttr(file_metal + ".alphaIsLuminance", 1)
-                elif pm.checkBox("cbALmet", q=True, v=False):
-                    pm.setAttr(file_metal + ".alphaIsLuminance", 0)
+            elif map == "NORMAL":
+                try:
+                    ai_normal = cmds.shadingNode("aiNormalMap", asShader=True, name=matname + "_NormalMap")
+                    cmds.defaultNavigation(ce=True, s=file_node + connect_from, d=ai_normal + connect_to)
+                    cmds.defaultNavigation(ce=True, s=ai_normal + ".outValue", d=ai_mat + ".normalCamera")
+                except NameError:
+                    cmds.warning("NORMAL file is not selected.")
 
-                if pm.checkBox("cbUdim", q=True, v=True):
-                    pm.setAttr(file_metal + ".uvTilingMode", 3)
-                elif pm.checkBox("cbUdim", q=True, v=False):
-                    pm.setAttr(file_metal + ".uvTilingMode", 0)
-
-            except NameError:
-                pm.warning(
-                    "MetalnessMap is not selected. Please select MetalnessMap")
-
-        # Roughness
-        if pm.checkBox("cbRou", q=True, v=True):
-            try:
-                pm.defaultNavigation(ce=True, s=file_rough + ".outAlpha",
-                                     d=ai_mat + ".specularRoughness")
-                pm.setAttr(file_rough + ".colorSpace", cs_rou, type="string")
-                pm.setAttr(file_rough + ".alphaIsLuminance", 1)
-                pm.setAttr(file_rough + ".ignoreColorSpaceFileRules", 1)
-                pm.setAttr(file_rough + ".fileTextureName",
-                           txRough, type="string")
-
-                if pm.checkBox("cbALrou", q=True, v=True):
-                    pm.setAttr(file_rough + ".alphaIsLuminance", 1)
-                elif pm.checkBox("cbALrou", q=True, v=False):
-                    pm.setAttr(file_rough + ".alphaIsLuminance", 0)
-
-                if pm.checkBox("cbUdim", q=True, v=True):
-                    pm.setAttr(file_rough + ".uvTilingMode", 3)
-                elif pm.checkBox("cbUdim", q=True, v=False):
-                    pm.setAttr(file_rough + ".uvTilingMode", 0)
-
-            except NameError:
-                pm.warning(
-                    "RoughnessMap is not selected. Please select RoughnessMap")
-
-        # Normal
-        if pm.checkBox("cbNor", q=True, v=True):
-            try:
-                ai_normal = pm.shadingNode(
-                    "aiNormalMap", asShader=True, name=matname + "_NormalMap")
-                pm.defaultNavigation(ce=True, s=file_normal +
-                                     ".outColor", d=ai_normal + ".input")
-                pm.defaultNavigation(ce=True, s=ai_normal + ".outValue",
-                                     d=ai_mat + ".normalCamera")
-                pm.setAttr(file_normal + ".colorSpace", cs_nor, type="string")
-                pm.setAttr(file_normal + ".ignoreColorSpaceFileRules", 1)
-                pm.setAttr(file_normal + ".fileTextureName",
-                           txNormal, type="string")
-
-                if pm.checkBox("cbALnor", q=True, v=True):
-                    pm.setAttr(file_normal + ".alphaIsLuminance", 1)
-                elif pm.checkBox("cbALnor", q=True, v=False):
-                    pm.setAttr(file_normal + ".alphaIsLuminance", 0)
-
-                if pm.checkBox("cbUdim", q=True, v=True):
-                    pm.setAttr(file_normal + ".uvTilingMode", 3)
-                elif pm.checkBox("cbUdim", q=True, v=False):
-                    pm.setAttr(file_normal + ".uvTilingMode", 0)
-
-            except NameError:
-                pm.warning(
-                    "NormalMap is not selected. Please select NormalMap")
-
-        # Displacement
-        if pm.checkBox("cbDis", q=True, v=True):
-            try:
-                disp_shader = pm.shadingNode(
-                    "displacementShader", asShader=True, name=matname + "_DisplacementShader")
-                disp_SG = pm.sets(r=True, nss=True, em=True,
-                                  name=matname + "_dsSG")
-                pm.defaultNavigation(
-                    ce=True, s=file_displace + ".outAlpha", d=disp_shader + ".displacement")
-                pm.defaultNavigation(
-                    ce=True, s=disp_shader + ".displacement", d=disp_SG + ".displacementShader")
-                pm.defaultNavigation(ce=True, s=ai_mat +
-                                     ".outColor", d=disp_SG + ".surfaceShader")
-                pm.setAttr(file_displace + ".colorSpace",
-                           cs_dis, type="string")
-                pm.setAttr(file_displace + ".alphaIsLuminance", 1)
-                pm.setAttr(file_displace + ".ignoreColorSpaceFileRules", 1)
-                pm.setAttr(file_displace + ".fileTextureName",
-                           txDisplace, type="string")
-
-                if pm.checkBox("cbALdis", q=True, v=True):
-                    pm.setAttr(file_displace + ".alphaIsLuminance", 1)
-                elif pm.checkBox("cbALdis", q=True, v=False):
-                    pm.setAttr(file_displace + ".alphaIsLuminance", 0)
-
-                if pm.checkBox("cbUdim", q=True, v=True):
-                    pm.setAttr(file_displace + ".uvTilingMode", 3)
-                elif pm.checkBox("cbUdim", q=True, v=False):
-                    pm.setAttr(file_displace + ".uvTilingMode", 0)
-
-            except NameError:
-                pm.warning(
-                    "NormalMap is not selected. Please select NormalMap")
-
-        else:
-            pass
+            else:
+                try:
+                    cmds.defaultNavigation(ce=True, s=file_node + connect_from, d=ai_mat + connect_to)
+                except NameError:
+                    cmds.warning("")
 
     else:
-        pm.warning("Please select some checkbox.")
+        cmds.warning("! No active textures. Please activate one of the checkboxes !")
 
 
-# List of maps to use
-maplist = ["AO", "DIFFUSE", "DISPLACEMENT", "METALNESS", "NORMAL", "OPACITY", "ROUGHNESS", "TRANSMISSION"]
+def auto_append(ws):
+    path_selected, type_selected = classifier.classify()
+    cb_selected_list = []
+    tf_selected_list = []
+    for type, paths in zip(type_selected, path_selected):
+        if type == None:
+            print(paths)
+            message =  '"', paths, '" is unknown texture type. Please assign manually.'
+            cmds.warning(message)
+        else:
+            cb_selected = "checkbox_" + type.lower()
+            cb_selected_list.append(cb_selected)
+            tf_selected = "textfield_" + type.lower()
+            tf_selected_list.append(tf_selected)
+            # print(cb_selected)
+
+    cb_unselected_list = set(cb_maps) ^ set(cb_selected_list)
+    for sel in cb_selected_list:
+        pm.checkBox(sel, edit=True, v=True)
+    for usel in cb_unselected_list:
+        pm.checkBox(usel, edit=True, v=False)
+    change_tab(ws)
+
+    for tfs, path in zip(tf_selected_list, path_selected):
+        pm.textField(tfs, edit=1, text=path)
+
 
 # ChangeUI
 # List of checked checkboxes
 def change_tab(ws):
     global map_enabled
     map_enabled = []
-    for (cb, fl, map) in zip(cb_maps, fl_maplist, maplist):
+    for (cb, fl, map) in zip(cb_maps, fl_maplist, MAP_LIST):
         if pm.checkBox(cb, q=True, v=True):
             pm.frameLayout(fl, q=True, edit=True, cl=False, en=True)
             map_enabled.append(map)
         else:
             pm.frameLayout(fl, q=True, edit=True, cl=True, en=False)
-    print "EnableTab: ", map_enabled
+    # print(map_enabled)
 
 
 def createAll(ws):
-    global matname
-    getMatName(ws)
-    if matname == "":
-        pm.warning("Please enter material name")
+    mat_name = get_mat_name(ws)
+    if mat_name == "":
+        pm.warning('Please enter in the "Common Settings - Material Name" ')
     else:
-        create_file_nodes(ws)
-        #materialSetup(ws)
+        material_setup(ws)
 
 
 # ui setting
@@ -328,16 +219,12 @@ def open_ui():
     if pm.window("mainWin", ex=True):
         pm.deleteUI("mainWin", wnd=True)
     with pm.window("mainWin", t="ezMaterialBuilder") as wn:
-        global txDiff, txMetal, txRough, txNormal, txDisplace, cb_maps, fl_maplist
-        txDiff = ""
-        txMetal = ""
-        txRough = ""
-        txNormal = ""
-        txDisplace = ""
+        global cb_maps, fl_maplist, tf_maplist, om_maplist, al_maplist
         cb_maps = []
         fl_maplist = []
         tf_maplist = []
         om_maplist = []
+        al_maplist = []
 
         with pm.columnLayout(w=610):
             ws = {}
@@ -346,14 +233,16 @@ def open_ui():
                 with pm.columnLayout():
                     with pm.frameLayout(l="Maps", bgs=True, w=120):
                         with pm.verticalLayout(spacing=10):
-                            for map in maplist:
+                            for map in MAP_LIST:
                                 cb_map = "checkbox_" + map.lower()
                                 cb_maps.append(cb_map)
                                 pm.checkBox(cb_map, l=map, v=False, cc=pm.Callback(change_tab, ws))
+                            pm.button(l="Auto Assign", command=pm.Callback(auto_append, ws))
 
                 # Material settings
                 with pm.columnLayout():
-                    with pm.scrollLayout(w=460, height=280, vst=True):
+                    height = len(MAP_LIST) * 23 + 88
+                    with pm.scrollLayout(w=460, h=height, vst=True): # height = 88 + 22*n
                         # Common Settings
                         with pm.frameLayout(l="Common Settings", bgs=True, w=440):
                             with pm.verticalLayout(spacing=5):
@@ -362,48 +251,48 @@ def open_ui():
                                     pm.textField("tf_matname", tx="", h=20)
                                 with pm.horizontalLayout(ratios=[1, 1, 2, 1], spacing=5):
                                     pm.text(l="")
-                                    pm.checkBox("cbUdim", l="UDIM")
-                                    pm.checkBox(l="Ignore CS File Rules")
-                                    pm.button(l="Auto append")
+                                    pm.checkBox("checkbox_udim", l="UDIM")
+                                    pm.checkBox("checkbox_ignore_cs", l="Ignore CS File Rules", v=True)
+                                    #pm.button(l="Auto append")
 
                         # Mesh map settings
-                        for map in maplist:
+                        for map in MAP_LIST:
                             fl_map = "framelayout_" + map.lower()
                             fl_maplist.append(fl_map)
                             tf_map = "textfield_" + map.lower()
                             tf_maplist.append(tf_map)
                             om_map = "optionmenu_" + map.lower()
                             om_maplist.append(om_map)
+                            al_map = "aluminance_" + map.lower()
+                            al_maplist.append(al_map)
 
                             pm.frameLayout(fl_map, l=map, cll=True, cl=True, en=False, bgs=True, w=440)
                             with pm.verticalLayout(ratios=[1, 1, 1, 1], spacing=4):
                                 with pm.horizontalLayout(ratios=[2, 7, 1], spacing=4):
                                     pm.text(l="Image Name", al="right", rs=False)
-                                    pm.textField(tf_map, text="not selected",
-                                                cc=pm.Callback(apply_map_path, ws, tf_map, map), h=20, w=230)
+                                    pm.textField(tf_map, text="not selected", h=20, w=230)
                                     pm.symbolButton("browser1", image="navButtonBrowse.png",
-                                                    command=pm.Callback(select_map, ws, tf_map, map))
+                                                    command=pm.Callback(open_browser, ws, tf_map))
 
                                 pm.text(" File Attributes", al="left", font='boldLabelFont')
 
                                 with pm.horizontalLayout(ratios=[2, 7, 1], spacing=4):
                                     pm.text(l="Color Space", al="right")
-                                    pm.optionMenu(om_map, en=True, acc=True, cc=set_attrs)
+                                    pm.optionMenu(om_map, en=True, acc=True)
                                     pm.menuItem("mi_srgb", l="sRGB")
                                     pm.menuItem("mi_raw", l="Raw")
 
                                 with pm.horizontalLayout(ratios=[1, 4], spacing=4):
                                     pm.text(l="")
-                                    pm.checkBox("cbALdiff", l="Alpha is Luminance", v=False, en=True)
+                                    pm.checkBox(al_map, l="Alpha is Luminance", v=False, en=True)
 
                     # Buttons
                     with pm.horizontalLayout(ratios=[1, 1], spacing=4):
                         pm.button(label="Build Material", w=220, command=pm.Callback(createAll, ws))
-                        pm.button(label="Close", w=220, command=pm.Callback(createAll, ws))
+                        pm.button(label="Debug", w=220, command=pm.Callback(get_all_attrs, ws))
 
 
 def run():
-    initAttrs()
     open_ui()
 
 

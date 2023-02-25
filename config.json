@@ -1,8 +1,25 @@
 {
-    "Diffuse": ["diffuse", "color", "basecolor"],
-    "Metalness": ["metal", "metalness"],
-    "Roughness": ["rough", "roughness"],
-    "Normal": ["normal"],
-    "Displacement": ["disp", "displacement"],
-    "AO": ["ao", "ambientocclusion", "ambient_occlusion"]
+  "keywords": {
+    "AO": ["ao", "ambientocclusion", "ambient_occlusion"],
+    "BASECOLOR": ["diffuse", "color", "basecolor"],
+    "METALNESS": ["metal", "metalness"],
+    "NORMAL": ["normal"],
+    "OPACITY": ["opacity"],
+    "DISPLACEMENT": ["disp", "displacement", "height"],
+    "ROUGHNESS": ["rough", "roughness"],
+    "SPECULAR": ["spec", "specular"],
+    "TRANSMISSION": ["trans", "transmission"]
+  },
+
+  "connection": {
+    "AO": [".outColor", ".input2"],
+    "BASECOLOR": [".outColor", ".baseColor"],
+    "DISPLACEMENT": [".outAlpha", ".displacement"],
+    "METALNESS": [".outAlpha", ".metalness"],
+    "NORMAL": [".outColor", ".input"],
+    "OPACITY": [".outColor", ".opacity"],
+    "ROUGHNESS": [".outAlpha", ".specularRoughness"],
+    "SPECULAR": [".outAlpha", ".specular"],
+    "TRANSMISSION": [".outAlpha", ".transmission"]
   }
+}
