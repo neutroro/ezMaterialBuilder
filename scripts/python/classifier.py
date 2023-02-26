@@ -12,7 +12,13 @@ CONFIG_PATH = "D:/Scripts/Maya/ezMaterialBuilder/config.json"
 class TextureClassifier:
     def __init__(self, json_file):
         with open(json_file, 'r') as f:
-            self.keywords = json.load(f)["keywords"]
+            config = json.load(f)["maps"]
+        names = config.keys()
+        self.keywords = {}
+        for n in names:
+            keyword = config[n]["keywords"]
+            self.keywords[n] = keyword
+        print("LOADED: ", self.keywords)
 
     def classify_tex(self, filename):
         for texture_type, keywords in self.keywords.items():

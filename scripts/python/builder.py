@@ -18,8 +18,9 @@ map_cs_dict = {}
 map_alpha_dict = {}
 
 with open(CONFIG_FILE, 'r') as f:
-    connect = json.load(f)["connection"]
-
+    config = json.load(f)#["connection"]
+    #connect = config["connection"]
+print("LOAD CONFIG FILE:", config)
 
 # Open explorer
 def open_browser(ws, tf_name):
