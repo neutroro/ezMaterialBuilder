@@ -6,16 +6,12 @@ import classifier
 import settings
 
 
+# Load configuration
 classifier = classifier.TextureClassifier()
-# classifier.run()
-
-
-# List of maps to use
 MAP_LIST = settings.LIST
 map_path_dict = {}
 map_cs_dict = {}
 map_alpha_dict = {}
-
 names = settings.MAPS.keys()
 connection = {}
 for n in names:
