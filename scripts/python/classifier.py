@@ -11,12 +11,12 @@ CONFIG_PATH = "D:/Scripts/Maya/ezMaterialBuilder/config.json"
 
 class TextureClassifier:
     def __init__(self):
-        names = settings.maps.keys()
+        names = settings.MAPS.keys()
         self.keywords = {}
         for n in names:
-            keyword = settings.maps[n]["keywords"]
+            keyword = settings.MAPS[n]["keywords"]
             self.keywords[n] = keyword
-        print("LOADED: ", self.keywords)
+        #print("LOADED: ", self.keywords)
 
     def classify_tex(self, filename):
         for texture_type, keywords in self.keywords.items():

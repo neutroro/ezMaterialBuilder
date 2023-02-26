@@ -6,23 +6,21 @@ import classifier
 import settings
 
 
-CONFIG_FILE = "D:/Scripts/Maya/ezMaterialBuilder/config.json"
 classifier = classifier.TextureClassifier()
 # classifier.run()
 
 
 # List of maps to use
-MAP_LIST = ["AO", "BASECOLOR", "COAT", "DISPLACEMENT", "EMISSION", "METALNESS", "NORMAL", "OPACITY", "ROUGHNESS", "SPECULAR", "SSS", "TRANSMISSION"]
+MAP_LIST = settings.LIST
 map_path_dict = {}
 map_cs_dict = {}
 map_alpha_dict = {}
 
-names = settings.maps.keys()
+names = settings.MAPS.keys()
 connection = {}
 for n in names:
-    connect = settings.maps[n]["connection"]
+    connect = settings.MAPS[n]["connection"]
     connection[n] = connect
-print("LOADED : ", connection)
 
 
 # Open explorer

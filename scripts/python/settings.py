@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
+# Please list the maps you will use
+LIST = [
+    "AO", "BASECOLOR", "COAT", "DISPLACEMENT", "EMISSION", "METALNESS", "NORMAL", "OPACITY", "ROUGHNESS", "SPECULAR", "TRANSMISSION"
+    ]
+
 # Texture loading settings
-maps = {
+MAPS = {
     "AO": {
         "keywords": ["ao", "ambientocclusion", "ambient_occlusion"],
         "connection": [".outColor", ".input2"]
@@ -14,7 +19,7 @@ maps = {
     },
 
     "COAT": {
-        "keywords": ["coat", "ambientocclusion", "ambient_occlusion"],
+        "keywords": ["coat"],
         "connection": [".outAlpha", ".coat"]
     },
 
@@ -46,5 +51,15 @@ maps = {
     "ROUGHNESS": {
         "keywords": ["rough", "roughness"],
         "connection": [".outAlpha", ".specularRoughness"]
+    },
+    
+    "SPECULAR": {
+        "keywords": ["spec", "specular"],
+        "connection": [".outAlpha", ".specular"]
+    },
+
+    "TRANSMISSION": {
+        "keywords": ["trans", "transmission"],
+        "connection": [".outAlpha", ".transmission"]
     }
 }
