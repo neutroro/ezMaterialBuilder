@@ -9,13 +9,20 @@
 ## Usage
 
 ## Installation
-#### Method 1: Download files [here]()
+#### Step 1: Downloading files from the [Releases]()
 
-#### Method 2: Unzip the file and place it as follows.
-* python  
-`<MAYA_APP_DIR>/<VERSION>/scripts`
-```
-$ pip3 install shallow-backup
+#### Step 2: Configuring your Environment
+Extract the downloaded file and place it as follows
+
+```py
+# Windows
+../Documents/maya/<VERSION>/scripts/ezMaterialBuilder
+
+# Linux
+<username>/maya/<version>/prefs
+
+# Mac OS X
+/Users/<username>/Library/Preferences/Autodesk/maya/<VERSION>/scripts/ezMaterialBuilder
 ```
 
 ## Configuration
