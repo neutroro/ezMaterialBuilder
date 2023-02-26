@@ -12,6 +12,7 @@ MAP_LIST = settings.LIST
 map_path_dict = {}
 map_cs_dict = {}
 map_alpha_dict = {}
+map_enabled = []
 names = settings.MAPS.keys()
 connection = {}
 for n in names:
@@ -23,7 +24,7 @@ for n in names:
 def open_browser(ws, tf_name):
     try:
         imgFilter = "ImageFiles (*.*)"
-        map_path = pm.fileDialog2(ff=imgFilter, ds=1, fm=1)[0]
+        map_path = cmds.fileDialog2(ff=imgFilter, ds=1, fm=1)[0]
         pm.textField(tf_name, edit=1, text=map_path)
     except TypeError:
         pass
@@ -37,7 +38,6 @@ def apply_map_path(ws):
             map_path_dict[map] = "None"
         else:
             map_path_dict[map] = map_path
-    print("Path: ", map_path_dict)
     return map_path_dict
 
 
@@ -45,7 +45,7 @@ def apply_color_space(ws):
     for om, map in zip(om_maplist, MAP_LIST):
         color_space = pm.optionMenu(om, q=True, v=True)
         map_cs_dict[map] = color_space
-    print("ColorSpace: ", map_cs_dict)
+    # print("ColorSpace: ", map_cs_dict)
     return map_cs_dict
 
 
@@ -53,7 +53,7 @@ def apply_alpha_luminace(ws):
     for al, map in zip(al_maplist, MAP_LIST):
         a_is_luminance = pm.checkBox(al, q=True, v=True)
         map_alpha_dict[map] = a_is_luminance
-    print("Alpha is Lum: ", map_alpha_dict)
+    # print("Alpha is Lum: ", map_alpha_dict)
     return map_alpha_dict
 
 
@@ -63,8 +63,8 @@ def apply_common_settings(ws):
     else:
         udim = 0
     ignore_cs = pm.checkBox("checkbox_ignore_cs", q=True, v=True)
-    print("UDIM:", udim)
-    print("IGNORE_CS:", ignore_cs)
+    # print("UDIM:", udim)
+    # print("IGNORE_CS:", ignore_cs)
     return udim, ignore_cs
 
 
@@ -169,8 +169,7 @@ def auto_append(ws):
     tf_selected_list = []
     for type, paths in zip(type_selected, path_selected):
         if type == None:
-            print(paths)
-            message =  '"', paths, '" is unknown texture type. Please assign manually.'
+            message = '"', paths, '" is unknown texture type. Please assign manually.'
             cmds.warning(message)
         else:
             cb_selected = "checkbox_" + type.lower()
@@ -201,22 +200,27 @@ def change_tab(ws):
             map_enabled.append(map)
         else:
             pm.frameLayout(fl, q=True, edit=True, cl=True, en=False)
-    # print(map_enabled)
 
 
-def createAll(ws):
+def build_all(ws):
     mat_name = get_mat_name(ws)
     if mat_name == "":
-        pm.warning('Please enter in the "Common Settings - Material Name" ')
+        cmds.warning('Please enter in the "Common Settings - Material Name" ')
+    elif not map_enabled:
+        cmds.warning("No active textures. Please activate the checkbox.")
     else:
         material_setup(ws)
+
+
+def delete_ui(ws):
+    pm.deleteUI("mainWin", wnd=True)
 
 
 # ui setting
 def open_ui():
     if pm.window("mainWin", ex=True):
         pm.deleteUI("mainWin", wnd=True)
-    with pm.window("mainWin", t="ezMaterialBuilder") as wn:
+    with pm.window("mainWin", t="ezMaterialBuilder") as ws:
         global cb_maps, fl_maplist, tf_maplist, om_maplist, al_maplist
         cb_maps = []
         fl_maplist = []
@@ -286,8 +290,8 @@ def open_ui():
 
                     # Buttons
                     with pm.horizontalLayout(ratios=[1, 1], spacing=4):
-                        pm.button(label="Build Material", w=220, command=pm.Callback(createAll, ws))
-                        pm.button(label="Debug", w=220, command=pm.Callback(get_all_attrs, ws))
+                        pm.button(label="Build Material", w=220, command=pm.Callback(build_all, ws))
+                        pm.button(label="Close", w=220, command=pm.Callback(delete_ui, ws))
 
 
 def run():
