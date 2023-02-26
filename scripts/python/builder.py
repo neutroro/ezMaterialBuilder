@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import json
 import maya.cmds as cmds
 import pymel.core as pm
 import classifier
