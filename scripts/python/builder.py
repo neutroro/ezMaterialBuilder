@@ -4,10 +4,11 @@ import json
 import maya.cmds as cmds
 import pymel.core as pm
 import classifier
+import settings
 
 
 CONFIG_FILE = "D:/Scripts/Maya/ezMaterialBuilder/config.json"
-classifier = classifier.TextureClassifier(CONFIG_FILE)
+classifier = classifier.TextureClassifier()
 # classifier.run()
 
 
@@ -17,10 +18,13 @@ map_path_dict = {}
 map_cs_dict = {}
 map_alpha_dict = {}
 
-with open(CONFIG_FILE, 'r') as f:
-    config = json.load(f)#["connection"]
-    #connect = config["connection"]
-print("LOAD CONFIG FILE:", config)
+names = settings.maps.keys()
+connection = {}
+for n in names:
+    connect = settings.maps[n]["connection"]
+    connection[n] = connect
+print("LOADED : ", connection)
+
 
 # Open explorer
 def open_browser(ws, tf_name):
@@ -108,8 +112,8 @@ def material_setup(ws):
     if map_enabled:
         ai_mat = cmds.shadingNode("aiStandardSurface", asShader=True, name=matname)
         for map, file_node in zip(map_enabled, file_nodelist):
-            connect_from = connect[map][0]
-            connect_to = connect[map][1]
+            connect_from = connection[map][0]
+            connect_to = connection[map][1]
 
             # Set file nodes attributes
             cmds.setAttr(file_node + ".ignoreColorSpaceFileRules", ignore_cs)
