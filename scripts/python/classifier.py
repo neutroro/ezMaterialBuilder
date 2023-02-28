@@ -4,11 +4,6 @@ import maya.cmds as cmds
 import settings
 
 
-# Config Path
-CONFIG_REL_PATH = "../../config.json"
-CONFIG_PATH = "D:/Scripts/Maya/ezMaterialBuilder/config.json"
-
-
 class TextureClassifier:
     def __init__(self):
         names = settings.MAPS.keys()

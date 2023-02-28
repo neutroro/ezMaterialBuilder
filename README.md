@@ -8,7 +8,7 @@
 Download your desired release directly from the  [Releases page](https://github.com/neutroro/ezMaterialBuilder/releases)
 
 ### Step 2: Configuring your Environment
-Extract the downloaded file and place it as follows
+Extract the downloaded files
 
 ```py
 # Windows
