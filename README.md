@@ -1,6 +1,5 @@
 # ezMaterialBuilder
-[Installation](#installation) •
-[Configuration](#configuration)
+![](https://img.shields.io/badge/LICENCE-MIT-blueviolet)
 
 ## Usage
 
