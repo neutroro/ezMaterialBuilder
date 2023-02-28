@@ -8,7 +8,7 @@
 Download your desired release directly from the  [Releases page](https://github.com/neutroro/ezMaterialBuilder/releases)
 
 ### Step 2: Configuring your Environment
-Extract the downloaded files
+Extract the downloaded file and place it in the specified directory
 
 ```py
 # Windows
@@ -21,6 +21,15 @@ Extract the downloaded files
 ../<username>/Library/Preferences/Autodesk/maya/<VERSION>/scripts/ezMaterialBuilder
 ```
 
-## Configuration
+### Step 3: Test ezMaterialBuilder
+To verify that the installation was successful, restart Maya and run the following python command in the script editor
 
-## Licence
+```py
+from ezMaterialBuilder import builder
+
+builder.run()
+```
+If a window appears, the installation is complete.
+
+
+## Configuration
